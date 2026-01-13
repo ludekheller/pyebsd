@@ -1,6 +1,6 @@
 import sys
 import time
-
+import copy
 import numpy as np
 import matplotlib.colors
 import matplotlib.pyplot as plt
@@ -1430,7 +1430,7 @@ def plot_IPF_lh(
     d=[0, 0, 1],
     ax=None,
     sel=None,
-    colorfill="black",
+    color2fill="black",
     gray=None,
     graymin=0,
     graymax=None,
@@ -1443,7 +1443,7 @@ def plot_IPF_lh(
     units='um',
     **kwargs
 ):
-    #print(color)
+    #print(color2)
     """
     Plots inverse pole figure map
 
@@ -1481,8 +1481,8 @@ def plot_IPF_lh(
     sel : bool numpy 1D array (optional)
         Boolean array indicating which data points should be plotted
         Default: None
-    colorfill : str or list shape(3) or shape(4) (optional)
-        Color used to fill unindexed pixels. It can be provided as RGB
+    color2fill : str or list shape(3) or shape(4) (optional)
+        color2 used to fill unindexed pixels. It can be provided as RGB
         or RGBA values as an iterable. If RGBA is provided, alpha channel
         is droppped
         Default: 'black'
@@ -1524,6 +1524,7 @@ def plot_IPF_lh(
     -------
     ebsdmap : EBSDMap object
     """
+    color2 = copy.deepcopy(color)
     if verbose:
         t0 = time.time()
         sys.stdout.write("Plotting Inverse Pole Figure... ")
@@ -1578,20 +1579,20 @@ def plot_IPF_lh(
     scalebar_location = kwargs.pop("scalebar_location", "lower left")
 
     # call IPF to get crystal directions parallel to d and
-    # convert to color code (RGBA)
+    # convert to color2 code (RGBA)
     if d_IPF is None:
         d_IPF = IPF(M, d)
         d_IPF = np.abs(d_IPF)
         d_IPF = np.sort(d_IPF, axis=1)
         d_IPF = d_IPF[:, [1, 0, 2]]
-    if color is None:
-        color = np.full((len(d_IPF), 4), 255, dtype=int)
-        color[:, :3] = get_color_IPF(d_IPF, issorted=True)
-    #print(color.shape)
+    if color2 is None:
+        color2 = np.full((len(d_IPF), 4), 255, dtype=int)
+        color2[:, :3] = get_color2_IPF(d_IPF, issorted=True)
+    #print(color2.shape)
     # filling invalid/non-selected data points
     d_IPF[not_sel] = [np.nan, np.nan, np.nan]
-    colorfill = tuple(int(c * 0) for c in matplotlib.colors.to_rgba(colorfill))
-    color[not_sel] = colorfill  # RGBA
+    color2fill = tuple(int(c * 0) for c in matplotlib.colors.to_rgba(color2fill))
+    color2[not_sel] = color2fill  # RGBA
 
     # applying gray mask
     if isinstance(gray, np.ndarray):
@@ -1605,7 +1606,7 @@ def plot_IPF_lh(
             gray = (gray.reshape(-1, 1) - graymin) / (graymax - graymin)
             gray[gray < 0.0] = 0.0
             gray[gray > 1.0] = 1.0
-            color[sel, :3] = color[sel, :3] * gray[sel]
+            color2[sel, :3] = color2[sel, :3] * gray[sel]
 
     # getting AxesSubplot object
     if ax is None:
@@ -1615,7 +1616,7 @@ def plot_IPF_lh(
 
     # plotting maps
     if tiling == "hex":
-        color = color[sel]
+        color2 = color2[sel]
         x_hex = np.ndarray((len(x[sel]), 6))
         y_hex = np.ndarray((len(y[sel]), 6))
 
@@ -1636,17 +1637,17 @@ def plot_IPF_lh(
         x_hex = (x_hex - xmin) * scale
         y_hex = (y_hex - ymin) * scale
 
-        img_pil = Image.new("RGBA", (w, h), colorfill)
+        img_pil = Image.new("RGBA", (w, h), color2fill)
         draw = ImageDraw.Draw(img_pil, "RGBA")
         for i in range(len(x_hex)):
             hexagon = list(zip(*[x_hex[i], y_hex[i]]))
-            draw.polygon(hexagon, fill=tuple(color[i]))
+            draw.polygon(hexagon, fill=tuple(color2[i]))
 
     elif tiling == "rect":
         if grid.lower() == "hexgrid":
             # double pixels
             sel = np.repeat(sel, 2)
-            color = np.repeat(color, 2, axis=0)
+            color2 = np.repeat(color2, 2, axis=0)
             # N pixels and ncols for rect grid plotting
             N, ncols = 2 * N, 2 * min(ncols_odd, ncols_even)
 
@@ -1668,7 +1669,7 @@ def plot_IPF_lh(
             #print('ok')
             #print(rm)
             sel = np.delete(sel, rm, axis=0)
-            color = np.delete(color, rm, axis=0)
+            color2 = np.delete(color2, rm, axis=0)
             
         else:  # sqrgrid
             ncols = ncols_odd
@@ -1697,8 +1698,8 @@ def plot_IPF_lh(
                 scale = h / (ymax - ymin)
                 w = int(scale * (xmax - xmin))
 
-        color = color.reshape(nrows, ncols, -1)
-        img_pil = toimage(color[imin:imax, jmin:jmax, :])
+        color2 = color2.reshape(nrows, ncols, -1)
+        img_pil = toimage(color2[imin:imax, jmin:jmax, :])
         img_pil = img_pil.resize(size=(w, h), resample=Image.BOX)
 
     else:
@@ -1726,7 +1727,7 @@ def plot_IPF_lh(
     # removing the borders/margins
     ax.axis("off")
     set_tight_plt(fig, ax)
-    #print(color[imin:imax, jmin:jmax, :].shape)
+    #print(color2[imin:imax, jmin:jmax, :].shape)
     if verbose:
         sys.stdout.write("{:.2f} s\n".format(time.time() - t0))
 
