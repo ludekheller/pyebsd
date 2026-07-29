@@ -214,8 +214,19 @@ def load_oh5_file(fname):
     acquisition_index = 1
     grid = "SqrGrid"
     header = ""
-    acquisition_index = list(h5file.keys())[0]
-    print(acquisition_index)
+    #Fix by CLAUDE
+    #acquisition_index = list(h5file.keys())[0]
+    acquisition_index = None
+    for key in h5file.keys():
+        if isinstance(h5file[key], h5py.Group):
+            acquisition_index = key
+            break
+
+    if acquisition_index is None:
+        raise ValueError(f"No acquisition group found in {fname}")
+    
+    
+    
     group_name = f"{acquisition_index}/EBSD"
     
     # Read metadata in header
