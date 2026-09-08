@@ -1440,7 +1440,7 @@ def plot_IPF_lh(
     verbose=True,
     color=None,
     d_IPF=None,
-    units='um',
+    units='um', 
     **kwargs
 ):
     #print(color2)
@@ -1705,8 +1705,9 @@ def plot_IPF_lh(
     else:
         plt.close(fig)
         raise Exception('Unknown "{}" tiling'.format(tiling))
-
+    
     ax.format_coord = CoordsFormatter(grid_indexing, d_IPF.round(6), "d")
+    
     img = ax.imshow(
         img_pil, interpolation="None", extent=(xmin, xmax, ymax, ymin), **kwargs
     )
