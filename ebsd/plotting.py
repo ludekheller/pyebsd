@@ -1136,6 +1136,8 @@ def plot_IPF(
     w=2048,
     scalebar=True,
     verbose=True,
+    sel2=None,
+    sel2fill="grey",
     **kwargs
 ):
     """
@@ -1206,6 +1208,12 @@ def plot_IPF(
     scalebar : bool (optional)
         If True, displays scalebar over IPF map
         Default: True
+    sel2 : bool numpy 1D array (optional)
+        Second category of non-selected pixels (e.g. another phase) drawn
+        in the color sel2fill instead of the fill color.
+        Default: None
+    sel2fill : str or list (optional)
+        Color for the sel2 pixels. Default: 'grey'
     verbose : bool (optional)
         If True, prints computation time
         Default: True
@@ -1240,6 +1248,14 @@ def plot_IPF(
     else:
         sel = np.full(N, True)
     not_sel = ~sel
+    if sel2 is not None:
+        sel2 = np.asarray(sel2, dtype=bool)
+        if sel2.shape[0] != N:
+            raise Exception("N and len(sel2) differ")
+        sel2 = sel2 & not_sel
+    else:
+        sel2 = np.zeros(N, dtype=bool)
+    seld = sel | sel2  # pixels drawn: selected + second category
 
     # set default tiling
     if grid.lower() == "sqrgrid" and tiling == "hex":
@@ -1253,8 +1269,8 @@ def plot_IPF(
                 tiling = "hex"
 
     # x and y plot limits
-    xmin, xmax = np.min(x[sel]), np.max(x[sel])
-    ymin, ymax = np.min(y[sel]), np.max(y[sel])
+    xmin, xmax = np.min(x[seld]), np.max(x[seld])
+    ymin, ymax = np.min(y[seld]), np.max(y[seld])
 
     if tiling == "hex":
         edge_length = dx / 3.0**0.5
@@ -1283,6 +1299,8 @@ def plot_IPF(
     d_IPF[not_sel] = [np.nan, np.nan, np.nan]
     colorfill = tuple(int(c * 255) for c in matplotlib.colors.to_rgba(colorfill))
     color[not_sel] = colorfill  # RGBA
+    # second category of non-selected pixels (e.g. another phase), drawn in sel2fill
+    color[sel2] = tuple(int(c * 255) for c in matplotlib.colors.to_rgba(sel2fill))
 
     # applying gray mask
     if isinstance(gray, np.ndarray):
@@ -1306,15 +1324,15 @@ def plot_IPF(
 
     # plotting maps
     if tiling == "hex":
-        color = color[sel]
-        x_hex = np.ndarray((len(x[sel]), 6))
-        y_hex = np.ndarray((len(y[sel]), 6))
+        color = color[seld]
+        x_hex = np.ndarray((len(x[seld]), 6))
+        y_hex = np.ndarray((len(y[seld]), 6))
 
         for i in range(6):
             # coordinates of the vertices of each hexagonal tile
             # in physical units (most commonly nm)
-            x_hex[:, i] = x[sel] + np.sin(i * np.pi / 3) * edge_length
-            y_hex[:, i] = y[sel] + np.cos(i * np.pi / 3) * edge_length
+            x_hex[:, i] = x[seld] + np.sin(i * np.pi / 3) * edge_length
+            y_hex[:, i] = y[seld] + np.cos(i * np.pi / 3) * edge_length
 
         scale = 1.0 * w / (xmax - xmin)
         h = int((ymax - ymin) * scale)
@@ -1334,6 +1352,7 @@ def plot_IPF(
             draw.polygon(hexagon, fill=tuple(color[i]))
 
     elif tiling == "rect":
+        sel = seld  # crop to drawn pixels
         if grid.lower() == "hexgrid":
             # double pixels
             sel = np.repeat(sel, 2)
@@ -1430,7 +1449,7 @@ def plot_IPF_lh(
     d=[0, 0, 1],
     ax=None,
     sel=None,
-    color2fill="black",
+    color2fill=None,
     gray=None,
     graymin=0,
     graymax=None,
@@ -1441,6 +1460,8 @@ def plot_IPF_lh(
     color=None,
     d_IPF=None,
     units='um', 
+    sel2=None,
+    sel2fill="grey",
     **kwargs
 ):
     #print(color2)
@@ -1512,6 +1533,12 @@ def plot_IPF_lh(
     scalebar : bool (optional)
         If True, displays scalebar over IPF map
         Default: True
+    sel2 : bool numpy 1D array (optional)
+        Second category of non-selected pixels (e.g. another phase) drawn
+        in the color sel2fill instead of the fill color.
+        Default: None
+    sel2fill : str or list (optional)
+        Color for the sel2 pixels. Default: 'grey'
     verbose : bool (optional)
         If True, prints computation time
         Default: True
@@ -1547,6 +1574,14 @@ def plot_IPF_lh(
     else:
         sel = np.full(N, True)
     not_sel = ~sel
+    if sel2 is not None:
+        sel2 = np.asarray(sel2, dtype=bool)
+        if sel2.shape[0] != N:
+            raise Exception("N and len(sel2) differ")
+        sel2 = sel2 & not_sel
+    else:
+        sel2 = np.zeros(N, dtype=bool)
+    seld = sel | sel2  # pixels drawn: selected + second category
 
     # set default tiling
     if grid.lower() == "sqrgrid" and tiling == "hex":
@@ -1560,8 +1595,8 @@ def plot_IPF_lh(
                 tiling = "hex"
 
     # x and y plot limits
-    xmin, xmax = np.min(x[sel]), np.max(x[sel])
-    ymin, ymax = np.min(y[sel]), np.max(y[sel])
+    xmin, xmax = np.min(x[seld]), np.max(x[seld])
+    ymin, ymax = np.min(y[seld]), np.max(y[seld])
 
     if tiling == "hex":
         edge_length = dx / 3.0**0.5
@@ -1591,8 +1626,13 @@ def plot_IPF_lh(
     #print(color2.shape)
     # filling invalid/non-selected data points
     d_IPF[not_sel] = [np.nan, np.nan, np.nan]
-    color2fill = tuple(int(c * 0) for c in matplotlib.colors.to_rgba(color2fill))
+    if color2fill is None:
+        color2fill = tuple(int(c * 0) for c in matplotlib.colors.to_rgba('black'))
+    else:
+        color2fill = tuple(int(c * 255) for c in matplotlib.colors.to_rgba(color2fill))
     color2[not_sel] = color2fill  # RGBA
+    # second category of non-selected pixels (e.g. another phase), drawn in sel2fill
+    color2[sel2] = tuple(int(c * 255) for c in matplotlib.colors.to_rgba(sel2fill))
 
     # applying gray mask
     if isinstance(gray, np.ndarray):
@@ -1616,15 +1656,15 @@ def plot_IPF_lh(
 
     # plotting maps
     if tiling == "hex":
-        color2 = color2[sel]
-        x_hex = np.ndarray((len(x[sel]), 6))
-        y_hex = np.ndarray((len(y[sel]), 6))
+        color2 = color2[seld]
+        x_hex = np.ndarray((len(x[seld]), 6))
+        y_hex = np.ndarray((len(y[seld]), 6))
 
         for i in range(6):
             # coordinates of the vertices of each hexagonal tile
             # in physical units (most commonly nm)
-            x_hex[:, i] = x[sel] + np.sin(i * np.pi / 3) * edge_length
-            y_hex[:, i] = y[sel] + np.cos(i * np.pi / 3) * edge_length
+            x_hex[:, i] = x[seld] + np.sin(i * np.pi / 3) * edge_length
+            y_hex[:, i] = y[seld] + np.cos(i * np.pi / 3) * edge_length
 
         scale = 1.0 * w / (xmax - xmin)
         h = int((ymax - ymin) * scale)
@@ -1644,6 +1684,7 @@ def plot_IPF_lh(
             draw.polygon(hexagon, fill=tuple(color2[i]))
 
     elif tiling == "rect":
+        sel = seld  # crop to drawn pixels
         if grid.lower() == "hexgrid":
             # double pixels
             sel = np.repeat(sel, 2)
