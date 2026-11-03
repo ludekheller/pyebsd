@@ -1626,10 +1626,10 @@ def plot_IPF_lh(
     #print(color2.shape)
     # filling invalid/non-selected data points
     d_IPF[not_sel] = [np.nan, np.nan, np.nan]
-    if color2fill is None:
-        color2fill = tuple(int(c * 0) for c in matplotlib.colors.to_rgba('black'))
-    else:
-        color2fill = tuple(int(c * 255) for c in matplotlib.colors.to_rgba(color2fill))
+    # non-selected pixels are always transparent (as before the sel2 option was added), so that
+    # maps of several ROIs drawn on one axis do not hide each other; the colour passed as
+    # color2fill/colorfill is deliberately ignored (the wrappers pass 'black' by default)
+    color2fill = tuple(int(c * 0) for c in matplotlib.colors.to_rgba('black'))
     color2[not_sel] = color2fill  # RGBA
     # second category of non-selected pixels (e.g. another phase), drawn in sel2fill
     color2[sel2] = tuple(int(c * 255) for c in matplotlib.colors.to_rgba(sel2fill))

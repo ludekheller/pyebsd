@@ -110,7 +110,16 @@ def load_ang_file(fname):
         raise Exception("Missing grid info")
 
     # Uses pandas to read ang file. pd.read_csv returns a pandas DataFrame
-    data = pd.read_csv(fname, header=None, comment="#", sep=r"\s+")
+    # Rows may have different numbers of columns (e.g. OIM partition exports write an extra
+    # column for excluded points): read into a fixed set of columns, then drop columns that
+    # are empty or present only in some rows.
+    data = pd.read_csv(fname, header=None, comment="#", sep=r"\s+", names=range(32))
+    data = data.dropna(axis=1, how="all")
+    extra = [c for c in data.columns[10:] if data[c].isna().any()]
+    if extra:
+        print("{} rows with extra column(s) {} ignored".format(
+            int(data[extra].notna().any(axis=1).sum()), extra))
+        data = data.drop(columns=extra)
     
     # Rename the columns
     columns = list(data.columns)
